@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match Predictor</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f8f6;color:#0b0b0b;padding:1rem}
+.ghdr{display:flex;align-items:center;gap:12px;padding:.875rem 1rem;background:#f1efe8;border:0.5px solid #d3d1c7;border-radius:12px;margin-bottom:12px}
+.gtm{flex:1;text-align:center}
+.gti{border:0.5px solid #d3d1c7;border-radius:8px;padding:5px 8px;font-size:14px;font-weight:500;text-align:center;width:100%;background:#fff;color:#0b0b0b}
+.gtag{font-size:10px;color:#888780;margin-top:2px}
+.gcard{background:#fff;border:0.5px solid #d3d1c7;border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px}
+.vhdr{display:grid;grid-template-columns:1fr 170px 28px;gap:10px;margin-bottom:8px;font-size:10px;color:#888780;text-transform:uppercase;letter-spacing:.04em}
+.vrow{display:grid;grid-template-columns:1fr 170px 28px;gap:10px;align-items:center;padding:10px 0;border-bottom:0.5px solid #e1e0d9}
+.vrow:last-child{border-bottom:none}
+.vni{border:0.5px solid #d3d1c7;border-radius:8px;padding:3px 7px;font-size:12px;font-weight:500;background:#fff;color:#0b0b0b;width:100%;margin-bottom:4px}
+.wr{display:flex;align-items:center;gap:5px}
+.wlbl{font-size:10px;color:#888780}
+.wpct{font-size:10px;color:#52514e;white-space:nowrap;min-width:30px}
+.sa{display:flex;flex-direction:column;gap:4px}
+.slbls{display:flex;justify-content:space-between;align-items:baseline}
+.lb1{font-size:14px;font-weight:500;color:#185fa5;min-width:18px}
+.lb2{font-size:14px;font-weight:500;color:#a32d2d;min-width:18px;text-align:right}
+.lbn{font-size:9px;color:#888780;text-align:center;flex:1}
+.dbtn{background:none;border:none;cursor:pointer;color:#888780;font-size:18px;width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:0}
+.dbtn:hover{background:#fcebeb;color:#a32d2d}
+.abtn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;border:0.5px dashed #b4b2a9;border-radius:8px;font-size:12px;color:#52514e;background:none;cursor:pointer;margin-top:4px}
+.abtn:hover{background:#f1efe8}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bw{height:5px;background:#e1e0d9;border-radius:3px;overflow:hidden;margin:3px 0 10px}
+.bf{height:100%;border-radius:3px;transition:width .25s}
+.bn{font-size:22px;font-weight:500;line-height:1.2}
+.bl{font-size:11px;color:#52514e;margin-top:2px}
+.sp{display:inline-flex;align-items:center;gap:5px;background:#f1efe8;border:0.5px solid #d3d1c7;border-radius:6px;padding:3px 10px;font-size:12px;margin:2px}
+.st{font-size:13px;font-weight:500;margin-bottom:10px;color:#0b0b0b}
+input[type=range]{accent-color:#2a78d6;cursor:pointer}
+.note{font-size:10px;color:#888780;margin-top:6px}
+</style>
+</head>
+<body>
+<div style="max-width:700px;margin:0 auto">
+
+<div class="ghdr">
+  <div class="gtm">
+    <input class="gti" type="text" id="t1" value="Portugal" aria-label="Home team">
+    <div class="gtag">home</div>
+  </div>
+  <div style="font-size:13px;color:#888780;font-weight:500">vs</div>
+  <div class="gtm">
+    <input class="gti" type="text" id="t2" value="Croatia" aria-label="Away team">
+    <div class="gtag">away</div>
+  </div>
+</div>
+
+<div class="gcard">
+  <div class="st">Variables & weights</div>
+  <div class="vhdr">
+    <span>Variable — weight slider below</span>
+    <span style="text-align:center">T1 ← score slider → T2 (sum = 10)</span>
+    <span></span>
+  </div>
+  <div id="vlist"></div>
+  <button class="abtn" id="addbtn">+ Add variable</button>
+  <div class="note">Each variable's scores sum to 10. Slider right = T1 advantage. Weights auto-normalize to 100%. Score slider steps in 0.5.</div>
+</div>
+
+<div class="gcard" style="background:#f5f8ff;border-color:#c5d5f0">
+  <div class="st" style="color:#185fa5">⚙ Base xG — controls the attacking tempo of the match</div>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+    <input type="range" id="base-slider" min="0.8" max="2.5" step="0.1" value="1.6" style="flex:1;accent-color:#185fa5">
+    <span id="base-disp" style="font-size:16px;font-weight:500;color:#185fa5;min-width:32px">1.6</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:10px;color:#52514e;text-align:center">
+    <div style="background:#e8f0fe;border-radius:6px;padding:4px 6px"><strong>1.1</strong><br>Defensive knockout</div>
+    <div style="background:#185fa5;color:#fff;border-radius:6px;padding:4px 6px"><strong>1.6</strong><br>Attacking teams ← current</div>
+    <div style="background:#e8f0fe;border-radius:6px;padding:4px 6px"><strong>2.0+</strong><br>Open, high-scoring</div>
+  </div>
+  <div style="font-size:10px;color:#52514e;margin-top:8px">
+    <strong>Why this matters:</strong> 2-1 only tops the scoreline list when T1 xG &gt; 2 AND T2 xG &gt; 1. With the sum-to-10 constraint, this requires base &gt; 1.5. Portugal vs Croatia are both attacking teams — base 1.6 is appropriate here.
+  </div>
+</div>
+
+<div class="rg">
+  <div class="gcard">
+    <div class="st">Expected goals (xG)</div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;text-align:center;gap:4px;align-items:center">
+      <div><div class="bn" id="xg1" style="color:#185fa5">—</div><div class="bl" id="xgl1">xG</div></div>
+      <div style="font-size:11px;color:#888780;padding:0 4px">–</div>
+      <div><div class="bn" id="xg2" style="color:#a32d2d">—</div><div class="bl" id="xgl2">xG</div></div>
+    </div>
+  </div>
+  <div class="gcard">
+    <div class="st">Weighted scores</div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;text-align:center;gap:4px;align-items:center">
+      <div><div class="bn" id="ms1" style="color:#185fa5">—</div><div class="bl" id="msl1">/ 10</div></div>
+      <div style="font-size:11px;color:#888780;padding:0 4px">–</div>
+      <div><div class="bn" id="ms2" style="color:#a32d2d">—</div><div class="bl" id="msl2">/ 10</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="gcard">
+  <div class="st">Outcome probabilities (90 min)</div>
+  <div id="probs"></div>
+</div>
+
+<div class="gcard">
+  <div class="st">Top scorelines by probability</div>
+  <div id="sclines"></div>
+</div>
+
+</div>
+
+<script>
+// Base xG of 1.6 reflects a high-scoring game between two attacking knockout teams.
+// For more defensive matchups, lower values (e.g. 1.1) are more appropriate.
+// 2-1 becomes the modal scoreline when xG(T1) > 2 AND xG(T2) > 1,
+// which requires base > 1.5 given the sum-to-10 constraint.
+let BASE_XG = 1.6;
+
+let V=[
+  {n:'Squad quality',     w:20, s:7},
+  {n:'Tournament form',   w:18, s:7},
+  {n:'Key players fit',   w:15, s:6.5},
+  {n:'Motivation/stakes', w:10, s:6},
+  {n:'Tactical matchup',  w:12, s:6},
+  {n:'Set piece threat',  w:8,  s:6},
+  {n:'Head-to-head',      w:7,  s:6},
+  {n:'Venue/conditions',  w:10, s:5}
+];
+
+const vl=document.getElementById('vlist');
+
+function pois(k,l){if(l<=0)return k===0?1:0;let r=Math.exp(-l);for(let i=1;i<=k;i++)r*=l/i;return r;}
+function names(){return[document.getElementById('t1').value||'T1',document.getElementById('t2').value||'T2'];}
+
+function renderV(){
+  vl.innerHTML='';
+  V.forEach((v,i)=>{
+    const d=document.createElement('div');
+    d.className='vrow';
+    const t2s=10-v.s;
+    const isEven=v.s===5;
+    d.innerHTML=`
+      <div>
+        <input class="vni" type="text" value="${v.n}" data-i="${i}" data-k="n" aria-label="Variable name">
+        <div class="wr">
+          <span class="wlbl">Wt:</span>
+          <input type="range" min="2" max="40" value="${v.w}" data-i="${i}" data-k="w" style="flex:1;height:14px" aria-label="Weight">
+          <span class="wpct" id="wp${i}">${v.w}%</span>
+        </div>
+      </div>
+      <div class="sa">
+        <div class="slbls">
+          <span class="lb1" id="s1${i}" style="color:${isEven?'#888780':'#185fa5'}">${v.s}</span>
+          <span class="lbn" id="sn${i}">${isEven?'even':''}</span>
+          <span class="lb2" id="s2${i}" style="color:${isEven?'#888780':'#a32d2d'}">${t2s}</span>
+        </div>
+        <input type="range" min="1" max="9" step="0.5" value="${v.s}" data-i="${i}" data-k="s" style="width:100%" aria-label="Score split">
+      </div>
+      <button class="dbtn" data-i="${i}" data-k="del" aria-label="Remove variable" title="Remove">×</button>
+    `;
+    vl.appendChild(d);
+  });
+}
+
+function calc(){
+  const tw=V.reduce((s,v)=>s+v.w,0);if(!tw)return;
+  let m1=0,m2=0;
+  V.forEach((v,i)=>{
+    const nw=v.w/tw;
+    m1+=nw*v.s;m2+=nw*(10-v.s);
+    const el=document.getElementById('wp'+i);
+    if(el)el.textContent=Math.round(nw*100)+'%';
+  });
+  const B=BASE_XG,M=5;
+  const x1=Math.max(0.2,B*m1/M),x2=Math.max(0.2,B*m2/M);
+  const[n1,n2]=names();
+  document.getElementById('xg1').textContent=x1.toFixed(2);
+  document.getElementById('xg2').textContent=x2.toFixed(2);
+  document.getElementById('xgl1').textContent=n1+' xG';
+  document.getElementById('xgl2').textContent=n2+' xG';
+  document.getElementById('ms1').textContent=m1.toFixed(2);
+  document.getElementById('ms2').textContent=m2.toFixed(2);
+  document.getElementById('msl1').textContent=n1;
+  document.getElementById('msl2').textContent=n2;
+  let w1=0,dr=0,w2=0;const sc=[];
+  for(let i=0;i<=5;i++)for(let j=0;j<=5;j++){
+    const p=pois(i,x1)*pois(j,x2);
+    if(i>j)w1+=p;else if(i===j)dr+=p;else w2+=p;
+    if(p>=0.007)sc.push({a:i,b:j,p});
+  }
+  sc.sort((a,b)=>b.p-a.p);
+  const p1=Math.round(w1*100),pd=Math.round(dr*100),p2=100-p1-pd;
+  document.getElementById('probs').innerHTML=[
+    {l:n1+' win',p:p1,c:'#2a78d6'},
+    {l:'Draw',p:pd,c:'#888780'},
+    {l:n2+' win',p:p2,c:'#e24b4a'}
+  ].map(r=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>${r.l}</span><span style="font-weight:500">${r.p}%</span></div><div class="bw"><div class="bf" style="width:${r.p}%;background:${r.c}"></div></div></div>`).join('');
+  document.getElementById('sclines').innerHTML=sc.slice(0,6).map(s=>`<div class="sp"><span style="font-weight:500">${s.a}–${s.b}</span><span style="color:#888780;font-size:10px">${Math.round(s.p*100)}%</span></div>`).join('');
+}
+
+renderV();calc();
+
+document.addEventListener('input',e=>{
+  const i=e.target.dataset.i,k=e.target.dataset.k,id=e.target.id;
+  if(id==='t1'||id==='t2'){calc();return;}
+  if(i===undefined)return;
+  const idx=parseInt(i);const v=V[idx];if(!v)return;
+  if(k==='n')v.n=e.target.value;
+  else if(k==='w')v.w=parseInt(e.target.value)||2;
+  else if(k==='s'){
+    v.s=parseFloat(e.target.value);
+    const a=document.getElementById('s1'+idx),b=document.getElementById('s2'+idx),c=document.getElementById('sn'+idx);
+    const isEven=v.s===5;
+    if(a){a.textContent=v.s;a.style.color=isEven?'#888780':'#185fa5';}
+    if(b){b.textContent=parseFloat((10-v.s).toFixed(1));b.style.color=isEven?'#888780':'#a32d2d';}
+    if(c)c.textContent=isEven?'even':'';
+  }
+  calc();
+});
+
+document.addEventListener('click',e=>{
+  if(e.target.dataset.k==='del'){V.splice(parseInt(e.target.dataset.i),1);renderV();calc();}
+});
+
+document.getElementById('addbtn').addEventListener('click',()=>{V.push({n:'New variable',w:10,s:5});renderV();calc();});
+
+const baseSlider = document.getElementById('base-slider');
+const baseDisp = document.getElementById('base-disp');
+baseSlider.addEventListener('input', () => {
+  BASE_XG = parseFloat(baseSlider.value);
+  baseDisp.textContent = BASE_XG.toFixed(1);
+  // Update the "current" label highlight
+  document.querySelectorAll('#base-slider ~ div > div').forEach((el,i) => {
+    el.style.background = i===1 ? '#185fa5' : '#e8f0fe';
+    el.style.color = i===1 ? '#fff' : '#52514e';
+    if(i===1) el.innerHTML = `<strong>${BASE_XG.toFixed(1)}</strong><br>← current`;
+  });
+  calc();
+});
+</script>
+</body>
+</html>
